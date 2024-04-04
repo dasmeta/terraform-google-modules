@@ -5,7 +5,7 @@ This Terraform module simplifies the creation of secrets within Google Cloud Pla
 To use this module to create secrets in GCP Secret Manager, define a module block in your Terraform configuration file like the example below:
 ```
 module "this" {
-  source = "dasmeta/external-secrets/any//modules/gcp-secret"
+  source = "dasmeta/modules/google//modules/gcp-secret"
 
   secrets = {
     "product-dev-service-username" = "admin"
