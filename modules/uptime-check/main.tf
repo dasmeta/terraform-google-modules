@@ -9,7 +9,10 @@ resource "google_monitoring_uptime_check_config" "https" {
     port         = var.http_check.port
     use_ssl      = var.http_check.use_ssl
     validate_ssl = var.http_check.validate_ssl
-
+    auth_info {
+      username = var.auth_info.username
+      password = var.auth_info.password
+    }
     accepted_response_status_codes {
       status_class = var.http_check.status_class
       status_value = var.http_check.status_value
