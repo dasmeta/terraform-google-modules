@@ -169,3 +169,15 @@ variable "documentation_content" {
   description = "The text of the alert documentation."
   default     = ""
 }
+
+variable "auth_info" {
+  type = object({
+    username = string # The username to authenticate.
+    password = string # The password to authenticate.
+  })
+  description = "The authentication information using username and password."
+  default = {
+    username = ""
+    password = ""
+  }
+}
