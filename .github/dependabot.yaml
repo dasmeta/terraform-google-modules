@@ -1,0 +1,14 @@
+version: 2
+
+updates:
+  - package-ecosystem: "terraform"
+    directory:
+      - "modules/container-registry"
+      - "modules/dns-zone"
+      - "modules/firebase"
+      - "modules/ingress"
+      - "modules/service-accounts"
+      - "modules/sso-rbac"
+      - "modules/uptime-check"
+    schedule:
+      interval: "daily"

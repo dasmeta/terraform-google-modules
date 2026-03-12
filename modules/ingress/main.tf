@@ -13,7 +13,7 @@ locals {
   annotations = merge(local.default_annotation, var.annotations)
 }
 
-resource "kubernetes_ingress" "ingress" {
+resource "kubernetes_ingress_v1" "ingress" {
 
   metadata {
     name        = var.host
@@ -32,8 +32,12 @@ resource "kubernetes_ingress" "ingress" {
           for_each = var.paths
           content {
             backend {
-              service_name = path.value["service_name"]
-              service_port = path.value["service_port"]
+              service {
+                name = path.value["service_name"]
+                port {
+                  number = path.value["service_port"]
+                }
+              }
             }
             path = path.value["path"]
           }
@@ -43,4 +47,3 @@ resource "kubernetes_ingress" "ingress" {
     }
   }
 }
-

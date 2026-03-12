@@ -1,0 +1,12 @@
+.git/
+.github/
+.codex/
+.specify/
+specs/
+node_modules/
+.terraform/
+*.tfstate*
+*.tfvars
+.terraform.lock.hcl
+.DS_Store
+Thumbs.db
