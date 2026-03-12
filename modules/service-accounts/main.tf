@@ -6,7 +6,7 @@ locals {
 
 module "service_accounts" {
   source  = "terraform-google-modules/service-accounts/google"
-  version = "4.1.1"
+  version = "4.7.0"
 
   org_id        = var.org_id
   project_id    = var.project_id
