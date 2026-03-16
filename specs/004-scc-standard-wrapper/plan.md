@@ -1,36 +1,39 @@
 # Implementation Plan: Project SCC Standard Baseline
 
-**Branch**: `004-scc-standard-wrapper` | **Date**: 2026-03-16 | **Spec**: [/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/specs/004-scc-standard-wrapper/spec.md](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/specs/004-scc-standard-wrapper/spec.md)
+**Branch**: `004-scc-standard-wrapper` | **Date**: 2026-03-16 | **Spec**: [/Users/aram.karapetzan/Development/dasmeta/terraform/terraform-google-modules/specs/004-scc-standard-wrapper/spec.md](/Users/aram.karapetzan/Development/dasmeta/terraform/terraform-google-modules/specs/004-scc-standard-wrapper/spec.md)
 **Input**: Feature specification from `/specs/004-scc-standard-wrapper/spec.md`
 
-**Note**: This plan covers Phase 0 research and Phase 1 design artifacts for a new Terraform wrapper module under `modules/`.
+**Note**: This plan covers Phase 0 research and Phase 1 design outputs for a new Terraform module under `modules/scc-standard`. Implementation tasks are deferred to `/speckit.tasks`.
 
 ## Summary
 
-Create a new project-scoped Terraform module that establishes a repeatable Security Command Center Standard baseline for one Google Cloud project at a time. The implementation should prefer existing public `terraform-google-modules` building blocks where they fit cleanly for API enablement, additive IAM, and operational integrations, and fall back to direct Google provider resources only where no suitable upstream wrapper exists.
+Create a new project-scoped Terraform wrapper module at `modules/scc-standard` that prepares one Google Cloud project for the SCC Standard baseline. The module should stay within the project privilege boundary, compose public `terraform-google-modules` components where they fit cleanly for additive IAM and log export, manage required service enablement directly, and document SCC tier activation as an external manual prerequisite.
 
 ## Technical Context
 
 **Language/Version**: Terraform `>= 1.3`  
-**Primary Dependencies**: HashiCorp Google provider, optional Google Beta provider, `terraform-google-modules/project-factory/google` for API activation patterns, `terraform-google-modules/iam/google//modules/projects_iam`, `terraform-google-modules/log-export/google`  
+**Primary Dependencies**: HashiCorp Google provider, optional HashiCorp Google Beta provider, direct `google_project_service` resources for required API activation, `terraform-google-modules/iam/google//modules/projects_iam` for additive IAM, `terraform-google-modules/log-export/google` for optional logging sink integration  
 **Storage**: Terraform state only  
-**Testing**: Terraform example tests with `0-setup.tf`, `1-example.tf`, `2-assert.tf`; `terraform validate`; repository documentation generation flow  
-**Target Platform**: Google Cloud project-level module execution from local or CI runners  
+**Testing**: Repository-native Terraform example tests (`0-setup.tf`, `1-example.tf`, `2-assert.tf`), `terraform validate`, and repository CI checks (`tflint`, `tfsec`, `checkov`)  
+**Target Platform**: Google Cloud project-scoped Terraform module executed from local developer machines and CI  
 **Project Type**: Terraform module  
-**Performance Goals**: One apply path should onboard a single eligible project without manual post-configuration and repeated applies should converge without duplicate bindings or integrations  
-**Constraints**: Must stay within project scope, use additive IAM semantics where possible, document any direct-provider fallback explicitly, and keep README/examples/tests aligned with the live interface  
-**Scale/Scope**: One reusable module for many projects; initial release targets the common project-level SCC Standard baseline plus optional logging and monitoring integrations
+**Performance Goals**: One deterministic baseline-preparation path for eligible projects and idempotent re-apply behavior with no duplicate IAM or logging resources  
+**Constraints**: One project per module instance; project-level scope only; fail closed when organization-level SCC prerequisites are missing; logging export is the only managed downstream integration in v1; SCC tier activation is external to the module; public modules are used selectively rather than wrapped wholesale  
+**Scale/Scope**: One reusable module consumed across many projects; first release covers prerequisite enablement, additive IAM, and optional logging export
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- Authority chain loaded: `.specify/memory/constitution.md` -> [docs/terraform-module-authority.md](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/docs/terraform-module-authority.md) -> installed `terraform-module-developer` skill and bundled references.
-- Repository scope check: planned changes are limited to a new module directory under `modules/`, feature spec artifacts under `specs/004-scc-standard-wrapper/`, and agent context metadata. No broader repository expansion is required.
-- Upstream wrapper check: provider-maintained Google modules were evaluated first. The closest reusable building blocks are `project-factory` for API/service activation patterns, `iam` for additive project IAM, and `log-export` for logging sinks. No provider-maintained module appears to offer a dedicated SCC Standard project wrapper, so direct provider resources remain necessary for SCC-specific behavior.
-- Conflict check: no current module is being modified, so there is no standards conflict with an existing implementation.
-- Breaking change check: none, because this is a new module.
-- Gate result: PASS for Phase 0 research.
+- Authority chain loaded and satisfied:
+  - `.specify/memory/constitution.md`
+  - `docs/terraform-module-authority.md`
+  - `.codex/constitution/skills/terraform-module-developer/SKILL.md` and bundled references
+- Repository scope check: PASS. Work is confined to a new module in this repository plus aligned docs/examples/tests and feature-spec artifacts.
+- Standards alignment check: PASS. Planned file coverage includes `README.md`, `examples/`, `tests/`, `versions.tf`, `providers.tf`, `variables.tf`, `outputs.tf`, and responsibility-scoped Terraform files.
+- Privilege-boundary check: PASS. The design stays project-scoped and treats organization-level readiness and SCC tier activation as external requirements with explicit documentation.
+- Upstream template usage check: PASS with note. Upstream scratch-template guidance was consulted only for new-module coverage expectations; no wholesale template copy is planned.
+- Blocking conflicts: none identified at planning time.
 
 ## Project Structure
 
@@ -43,8 +46,8 @@ specs/004-scc-standard-wrapper/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
-│   ├── module-interface.md
-│   └── acceptance-scenarios.md
+│   ├── acceptance-scenarios.md
+│   └── module-interface.md
 └── tasks.md
 ```
 
@@ -52,118 +55,70 @@ specs/004-scc-standard-wrapper/
 
 ```text
 modules/
-├── scc-standard/
-│   ├── README.md
-│   ├── main.tf
-│   ├── apis.tf
-│   ├── iam.tf
-│   ├── integrations.tf
-│   ├── locals.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── providers.tf
-│   ├── versions.tf
-│   ├── examples/
-│   │   └── basic/
-│   │       ├── 0-setup.tf
-│   │       ├── 1-example.tf
-│   │       └── README.md
-│   └── tests/
-│       └── basic/
-│           ├── 0-setup.tf
-│           ├── 1-example.tf
-│           ├── 2-assert.tf
-│           └── README.md
-└── [existing modules unchanged]
+└── scc-standard/
+    ├── README.md
+    ├── main.tf
+    ├── services.tf
+    ├── iam.tf
+    ├── logging.tf
+    ├── locals.tf
+    ├── variables.tf
+    ├── outputs.tf
+    ├── versions.tf
+    ├── providers.tf
+    ├── examples/
+    │   └── basic/
+    │       ├── main.tf
+    │       └── README.md
+    └── tests/
+        └── basic/
+            ├── 0-setup.tf
+            ├── 1-example.tf
+            ├── 2-assert.tf
+            └── README.md
 ```
 
-**Structure Decision**: Use a new focused module under `modules/scc-standard/`. Split Terraform files by responsibility to keep API enablement, IAM, and operational integrations readable, while matching the repository’s existing examples/tests layout.
-
-## Complexity Tracking
-
-No constitution violations or justified exceptions are currently required.
+**Structure Decision**: Create a focused module directory under `modules/scc-standard` and split Terraform files by responsibility instead of hiding all behavior in `main.tf`. Keep `main.tf` for top-level orchestration and module composition, with dedicated files for service activation, IAM, and logging so the public-module boundaries remain visible and testable.
 
 ## Phase 0: Research Plan
 
-### Current Repository Module State
+Research resolves the following planning decisions before implementation tasks are written:
 
-- Existing modules show a lightweight pattern: focused module directories under `modules/`, Terraform resources split by responsibility when useful, README-driven usage, and Terraform-based example or test directories.
-- Existing coverage is uneven: some modules have `versions.tf` and outputs, some do not. For this new module, the internal baseline requires explicit `providers.tf`, `versions.tf`, README, examples, and tests.
-- No existing SCC module or closely related security baseline module exists in this repository.
+1. Which public Google modules fit this project-scoped wrapper cleanly, and which concerns should remain explicit local resources or documentation.
+2. How to keep the module inside the project privilege boundary when SCC readiness depends on organization-level state and manual activation.
+3. Which IAM pattern preserves additive behavior for required and optional identities.
+4. What the v1 logging-only integration contract should look like.
+5. Which repository-native test shape should validate the module.
 
-### Gaps Versus Internal Standards
+Phase 0 output is recorded in `research.md`.
 
-- New module must include the standard file set up front instead of inheriting the uneven coverage seen in older modules.
-- Variables and outputs need explicit descriptions and minimal interface exposure.
-- Tests should follow the preferred `0-setup.tf`, `1-example.tf`, `2-assert.tf` pattern.
-- The plan must document provider expectations and wrapper rationale explicitly.
+## Phase 1: Design Outputs
 
-### Candidate Upstream Modules Considered
+Phase 1 translates the approved spec and research decisions into implementation-facing design artifacts:
 
-- `terraform-google-modules/terraform-google-project-factory`: useful for service activation and project bootstrap patterns, but too broad as a wrapper baseline because it creates and manages whole projects.
-- `terraform-google-modules/terraform-google-iam//modules/projects_iam`: suitable for additive project IAM role assignment.
-- `terraform-google-modules/terraform-google-log-export`: suitable for project-level logging export integration.
-- No provider-maintained `terraform-google-modules` package was identified for project-level SCC Standard enablement itself.
-
-### Chosen Wrapper Baseline and Fallback Rationale
-
-- Wrapper baseline: compose selected public modules for additive IAM and log export where those modules reduce custom code cleanly.
-- Direct-provider fallback: use Google provider resources for SCC-specific baseline steps because no provider-maintained SCC Standard project wrapper was found.
-- Fallback is justified because the requested capability is narrower than `project-factory` and more project-scoped than the official SCC Terraform coverage currently exposed for organization and folder notification/export resources.
-
-### Research Tasks and Decisions
-
-1. Confirm the closest reusable upstream module set for project API enablement, IAM, and logging export.
-2. Confirm the provider coverage boundary for SCC-specific resources so the module does not promise unsupported project-level automation.
-3. Define the common-case module scope boundary for v1 to avoid organization-level or premium-tier feature creep.
-4. Define a documentation and test strategy consistent with the repository’s module patterns.
-
-## Phase 1: Design Plan
-
-### Data Model Direction
-
-- Model the feature around a single `Project Security Baseline` aggregate with nested API activation, IAM assignments, and optional operational integrations.
-- Treat approved identities and operational destinations as explicit user-provided inputs with validation and conditional creation behavior.
-- Represent onboarding success as converged project state rather than a long-running workflow or external datastore.
-
-### Contract Direction
-
-- Document the Terraform module interface as the contract users interact with: required inputs, optional inputs, outputs, and guaranteed behaviors.
-- Document acceptance scenarios separately so implementation and tests can trace back to spec commitments without reading Terraform internals.
-
-### Planned File Changes
-
-- Create [modules/scc-standard/README.md](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/README.md)
-- Create [modules/scc-standard/main.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/main.tf)
-- Create [modules/scc-standard/apis.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/apis.tf)
-- Create [modules/scc-standard/iam.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/iam.tf)
-- Create [modules/scc-standard/integrations.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/integrations.tf)
-- Create [modules/scc-standard/locals.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/locals.tf)
-- Create [modules/scc-standard/variables.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/variables.tf)
-- Create [modules/scc-standard/outputs.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/outputs.tf)
-- Create [modules/scc-standard/providers.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/providers.tf)
-- Create [modules/scc-standard/versions.tf](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/versions.tf)
-- Create example and test files under [modules/scc-standard/examples/basic/](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/examples/basic) and [modules/scc-standard/tests/basic/](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/modules/scc-standard/tests/basic)
-- Update [AGENTS.md](/Users/vazgen/work/Dasmeta/modules/terraform-google-modules/AGENTS.md) via the agent context script
-
-### Potential Breaking Changes
-
-- None for the repository interface, because this is a new module addition.
-
-### Conflicts Requiring Approval
-
-- None at planning time. If implementation reveals that project-level SCC Standard activation requires organization-level setup that cannot be modeled safely inside a project-scoped module, that becomes a scope conflict and must stop for user approval.
+- `data-model.md`: defines the prepared project baseline, onboarding request, approved identities, required service set, and logging integration model.
+- `contracts/module-interface.md`: defines the Terraform module inputs, outputs, and behavioral guarantees.
+- `contracts/acceptance-scenarios.md`: defines the feature-level acceptance behaviors that tests and examples must cover.
+- `quickstart.md`: defines a minimal consumer flow for using the future module.
 
 ## Phase 2: Implementation Planning Direction
 
-- Keep the first version narrow: one project at a time, additive IAM, optional integrations, and no organization-wide SCC administration.
-- Prefer public module composition only where it reduces complexity; do not wrap `project-factory` wholesale for an existing-project use case.
-- Build documentation and example/test coverage alongside the module, not after.
+`/speckit.tasks` should decompose implementation around these workstreams:
+
+1. Scaffold `modules/scc-standard` with explicit provider/version files, documented variables, useful outputs, and responsibility-scoped Terraform files.
+2. Implement required service activation and external-prerequisite documentation with clear dependency ordering and fail-closed behavior.
+3. Compose additive IAM via the public IAM module for baseline-required and optional operator identities.
+4. Compose optional logging export via the public log-export module and expose useful sink outputs.
+5. Add README, example usage, and repository-native tests covering baseline-only, IAM, logging-enabled, and failure/idempotency paths.
 
 ## Post-Design Constitution Check
 
-- Authority chain preserved after design: PASS.
-- Project scope remains limited to a single coherent privilege boundary: PASS.
-- Wrapper-first evaluation documented before fallback to direct resources: PASS.
-- Required file coverage includes README, examples, tests, providers, and versions: PASS.
-- No breaking changes or approval-gated conflicts introduced in the design artifacts: PASS.
+- Authority chain still satisfied after design: PASS.
+- Module remains within one coherent responsibility and one privilege boundary: PASS.
+- Planned interface remains narrow and common-case focused: PASS.
+- Documentation, examples, tests, provider/version files remain part of the design scope: PASS.
+- No constitution violations or approval-gated conflicts introduced by Phase 1 artifacts: PASS.
+
+## Complexity Tracking
+
+No constitution violations requiring justification.

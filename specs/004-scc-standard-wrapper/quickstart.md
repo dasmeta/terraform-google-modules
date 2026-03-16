@@ -3,9 +3,10 @@
 ## Prerequisites
 
 - Terraform `>= 1.3`
-- Access to a Google Cloud project that is eligible for the baseline
-- Credentials with permission to enable required services, manage project IAM, and create optional operational integrations
-- Any shared logging or monitoring destinations prepared in advance if the optional integrations will be enabled
+- A Google Cloud project that is eligible for SCC Standard onboarding
+- SCC Standard activated for the target project through the documented Google Cloud console workflow
+- Credentials with permission to enable required project services, manage project IAM, and configure optional logging export
+- A pre-existing logging destination prepared in advance if logging export will be enabled
 
 ## 1. Add the module
 
@@ -19,10 +20,8 @@ module "project_scc_standard" {
     "group:secops@example.com",
   ]
 
-  logging_integration_enabled    = true
-  logging_destination            = "storage.googleapis.com/example-security-bucket"
-  monitoring_integration_enabled = true
-  monitoring_destination         = "projects/example-project-id/notificationChannels/1234567890"
+  logging_integration_enabled = true
+  logging_destination         = "storage.googleapis.com/example-security-bucket"
 }
 ```
 
@@ -37,7 +36,8 @@ Review the plan to confirm:
 
 - required project services will be enabled
 - only additive project IAM changes are introduced
-- optional integrations match the destinations you intended
+- logging export is created only when enabled
+- SCC tier activation is documented as external to this module
 
 ## 3. Apply the baseline
 
@@ -47,10 +47,10 @@ terraform apply
 
 ## 4. Validate expected results
 
-- The project reaches the documented SCC Standard baseline.
+- The project reaches the documented prepared SCC Standard baseline prerequisites.
 - Required project IAM bindings are present.
-- Optional logging and monitoring integrations are created only when enabled.
-- Re-running `terraform apply` produces no duplicate bindings or duplicate integrations.
+- The logging sink is created only when logging integration is enabled.
+- Re-running `terraform apply` does not create duplicate bindings or duplicate logging resources.
 
 ## 5. Run repository-style verification during implementation
 

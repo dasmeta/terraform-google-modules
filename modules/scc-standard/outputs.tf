@@ -1,49 +1,61 @@
-output "project_number" {
-  description = "Numeric project identifier derived from the target project."
-  value       = data.google_project.project.number
+output "project_id" {
+  description = "Target project prepared by this module."
+  value       = var.project_id
 }
 
 output "required_services" {
-  description = "Services the module enables for the SCC Standard baseline."
-  value       = sort(tolist(local.required_services))
+  description = "Required project services enabled by the module."
+  value       = local.required_services
 }
 
-output "service_identity_emails" {
-  description = "Google-managed service identity emails created by the baseline."
-  value       = { for service, identity in google_project_service_identity.service_identity : service => identity.email }
+output "manual_activation_required" {
+  description = "Whether SCC tier activation remains an external manual prerequisite."
+  value       = true
 }
 
-output "effective_operator_identities" {
-  description = "Normalized operator identities receiving additive project access."
-  value       = local.normalized_operator_identities
+output "manual_prerequisites" {
+  description = "Manual prerequisites that remain outside Terraform automation."
+  value       = local.manual_prerequisites
 }
 
-output "effective_role_bindings" {
-  description = "Normalized additive IAM bindings applied by the module."
-  value       = local.effective_role_bindings
+output "operator_identities" {
+  description = "Approved operator identities managed by this module."
+  value       = local.unique_operator_identities
 }
 
-output "logging_integration_enabled" {
-  description = "Whether logging integration is enabled for the module instance."
-  value       = var.logging_integration_enabled
+output "operator_role_bindings" {
+  description = "Additive operator role bindings derived by this module."
+  value       = local.operator_bindings
 }
 
-output "logging_export_filter" {
-  description = "Filter used by the logging sink and logs-based metric."
-  value       = local.security_signal_filter
+output "logging_filter" {
+  description = "Logging filter used when the optional log export is enabled."
+  value       = local.logging_filter
 }
 
-output "logging_sink_writer_identity" {
-  description = "Writer identity created for the logging sink when logging integration is enabled."
-  value       = try(google_logging_project_sink.security_signals[0].writer_identity, null)
+output "logging_sink_name" {
+  description = "Deterministic log sink name used by the optional logging integration."
+  value       = var.logging_integration_enabled ? local.logging_sink_name : null
 }
 
-output "monitoring_integration_enabled" {
-  description = "Whether monitoring integration is enabled for the module instance."
-  value       = var.monitoring_integration_enabled
+output "logging_destination" {
+  description = "Configured logging destination for the optional log export."
+  value       = var.logging_integration_enabled ? var.logging_destination : null
 }
 
-output "monitoring_alert_policy_name" {
-  description = "Display name of the monitoring alert policy created by the module."
-  value       = try(google_monitoring_alert_policy.security_findings[0].display_name, null)
+output "logging_writer_identity" {
+  description = "Writer identity produced by the optional log export module."
+  value       = var.logging_integration_enabled ? module.log_export[0].writer_identity : null
+}
+
+output "baseline_summary" {
+  description = "High-level summary of the prepared baseline managed by this module."
+  value = {
+    project_id                 = var.project_id
+    manual_activation_required = true
+    required_services          = local.required_services
+    operator_identities        = local.unique_operator_identities
+    logging_integration        = var.logging_integration_enabled
+    logging_sink_name          = var.logging_integration_enabled ? local.logging_sink_name : null
+  }
 }

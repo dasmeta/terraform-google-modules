@@ -1,11 +1,12 @@
-resource "google_project_iam_member" "project_role_member" {
-  for_each = local.project_role_members
+module "project_iam" {
+  count = length(local.operator_bindings) > 0 ? 1 : 0
 
-  project = var.project_id
-  role    = each.value.role
-  member  = each.value.member
+  source  = "terraform-google-modules/iam/google//modules/projects_iam"
+  version = "~> 8.0"
 
-  depends_on = [
-    google_project_service.required,
-  ]
+  projects = [var.project_id]
+  mode     = "additive"
+  bindings = local.operator_bindings
+
+  depends_on = [google_project_service.required]
 }

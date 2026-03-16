@@ -1,10 +1,4 @@
-module "baseline_only" {
-  source = "../../"
-
-  project_id = "example-project-id"
-}
-
-module "with_integrations" {
+module "project_scc_standard" {
   source = "../../"
 
   project_id = "example-project-id"

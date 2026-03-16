@@ -1,56 +1,77 @@
 # Phase 0 Research: Project SCC Standard Baseline
 
-## Decision 1: Use a composed wrapper, not a single upstream SCC module
+## Decision 1: Use a focused wrapper with selective public-module composition
 
-**Decision**: Build the new module as a focused wrapper that composes public Google Terraform modules only for the parts they fit well, rather than trying to anchor the design on one upstream SCC module.
+**Decision**: Build `modules/scc-standard` as a narrow project-scoped wrapper that composes public Google modules only where they cleanly match the need, and keep unsupported SCC tier-activation behavior out of Terraform automation.
 
-**Rationale**: Current provider-maintained Google module candidates cover adjacent concerns, not the requested project-level SCC Standard baseline as a whole. `project-factory` is broader than this use case, `projects_iam` fits additive IAM well, and `log-export` fits project-level log sinks, but no provider-maintained SCC Standard project module was identified.
-
-**Alternatives considered**:
-
-- Use `project-factory` as the main wrapper baseline: rejected because it is optimized for project creation/bootstrap and would add broader lifecycle responsibilities than the spec requires.
-- Implement everything with direct provider resources and no public module composition: rejected because additive IAM and log export already have stable public module patterns worth reusing.
-
-## Decision 2: Keep v1 at project scope and fail closed on organization prerequisites
-
-**Decision**: Treat the module as a project-scoped baseline only. If a requested behavior requires organization-level SCC administration or shared prerequisite setup outside the project boundary, the module should document that prerequisite and fail clearly instead of trying to manage it implicitly.
-
-**Rationale**: The spec and repository standards both favor a coherent responsibility and a single privilege boundary. A project-scoped module should not silently take ownership of organization-wide SCC administration.
+**Rationale**: The clarified spec requires public Google modules to be wrapped where useful, but not at the cost of pulling in broader project lifecycle behavior. `projects_iam` and `log-export` fit the interface, while project-level SCC tier activation currently remains outside safe Terraform coverage and should stay explicit in documentation.
 
 **Alternatives considered**:
 
-- Expand the module to manage organization-level SCC state: rejected because it crosses privilege boundaries and materially broadens the module scope.
-- Ignore organization prerequisites and claim project-only success anyway: rejected because that would hide real operational dependencies and produce misleading automation.
+- Wrap a broader upstream project module as the baseline: rejected because it expands ownership beyond the project-scoped SCC baseline.
+- Use only direct provider resources: rejected because additive IAM and log export already have stable public module patterns worth reusing.
 
-## Decision 3: Use additive IAM behavior for operator access
+## Decision 2: Enable required services directly instead of wrapping `project-factory`
 
-**Decision**: Manage project IAM in additive mode wherever public IAM modules support it.
+**Decision**: Manage required API activation with direct `google_project_service` resources rather than composing `terraform-google-modules/project-factory/google`.
 
-**Rationale**: The feature needs to add required baseline access without taking authoritative control of unrelated project IAM bindings. Additive behavior best matches the spec’s requirement to avoid surprising project-wide permission changes.
-
-**Alternatives considered**:
-
-- Use authoritative IAM bindings: rejected because it creates a higher risk of removing unrelated access and does not fit the requested baseline behavior.
-- Manage all IAM bindings with raw provider resources only: rejected because the public IAM module already handles additive project IAM cleanly.
-
-## Decision 4: Treat logging and monitoring integrations as optional module branches
-
-**Decision**: Design logging and monitoring integration as optional, independently switchable branches of the baseline, with clear failure behavior when a configured destination is missing or inaccessible.
-
-**Rationale**: The feature spec explicitly makes operational integrations optional while baseline security enablement remains mandatory. This also keeps the common case simple for projects that only need onboarding.
+**Rationale**: `project-factory` is optimized for project bootstrap and lifecycle management, which is broader than this feature. Direct service-enablement resources keep the module focused on an existing-project baseline and make dependency ordering explicit.
 
 **Alternatives considered**:
 
-- Make both integrations mandatory: rejected because it conflicts with the accepted spec assumptions.
-- Defer all integrations to follow-up modules: rejected because the feature explicitly includes them as part of the baseline wrapper.
+- Use `project-factory` only for API activation patterns: rejected because the surrounding module contract and lifecycle assumptions are still broader than needed.
+- Require services to be pre-enabled outside the module: rejected because the spec requires the module to converge prerequisites during onboarding.
 
-## Decision 5: Align test coverage to repository-native Terraform example tests
+## Decision 3: Keep the module strictly project-scoped and fail closed on organization prerequisites
 
-**Decision**: Validate the module with repository-native Terraform example tests using `0-setup.tf`, `1-example.tf`, and `2-assert.tf`, plus `terraform validate` and documentation consistency checks.
+**Decision**: Treat organization-level SCC readiness and project-level SCC tier activation as external prerequisites. If project-level application reveals missing organization authority, the module should fail clearly and document that boundary instead of trying to activate SCC.
 
-**Rationale**: This matches the internal standard and the existing structure used in `modules/uptime-check`.
+**Rationale**: The repository standards require a coherent responsibility and a single privilege boundary. Expanding into organization administration would materially change both permissions and module scope.
 
 **Alternatives considered**:
 
-- Skip tests initially and rely on manual examples: rejected because the module interface and optional integrations are substantial enough to require repeatable verification.
-- Introduce a new test harness: rejected because the repository already has a preferred test shape.
+- Extend the module to manage organization-level SCC state: rejected because it crosses privilege boundaries and broadens the module beyond the approved scope.
+- Ignore organization prerequisites and claim success based only on local resources: rejected because that would misrepresent the actual security baseline state.
+
+## Decision 4: Treat operator IAM as the managed IAM scope for v1
+
+**Decision**: Manage additive project IAM for approved operator identities in v1, and document that SCC service agents created during manual activation remain outside this module’s responsibility.
+
+**Rationale**: Manual SCC activation creates or updates service-agent state outside Terraform. Keeping IAM scope focused on approved operator access avoids pretending to manage identities that the module cannot safely create itself.
+
+**Alternatives considered**:
+
+- Attempt to manage SCC-created service agents directly: rejected because those identities depend on external activation and may not exist at plan time.
+- Remove IAM from the module entirely: rejected because approved operator access remains part of the requested baseline.
+## Decision 5: Use additive IAM for approved operator identities
+
+**Decision**: Compose `terraform-google-modules/iam/google//modules/projects_iam` in additive mode for project-level operator role assignment.
+
+**Rationale**: The spec requires baseline access to be granted without taking ownership of unrelated IAM bindings. Additive behavior fits that requirement and aligns with the public module’s strengths.
+
+**Alternatives considered**:
+
+- Use authoritative project IAM bindings: rejected because that risks removing unrelated access.
+- Rebuild additive IAM behavior with raw resources only: rejected because the public IAM module already encapsulates the common case.
+
+## Decision 6: Limit v1 downstream integration to logging export
+
+**Decision**: Manage only logging export in v1 and explicitly leave monitoring dashboards, alerts, and other monitoring artifacts out of scope.
+
+**Rationale**: The clarification narrowed the operational integration scope to logging export only. This keeps the module interface testable and avoids inventing a vague “monitoring destination” abstraction.
+
+**Alternatives considered**:
+
+- Support both logging and monitoring in v1: rejected because the accepted clarification explicitly removed monitoring artifacts from scope.
+- Defer all downstream integrations: rejected because logging export remains part of the approved baseline.
+
+## Decision 7: Use repository-native Terraform example tests and aligned docs
+
+**Decision**: Validate the module with repository-native Terraform tests under `tests/basic/` using `0-setup.tf`, `1-example.tf`, and `2-assert.tf`, and keep `README.md` plus `examples/basic/` aligned with the same interface.
+
+**Rationale**: This matches the repository’s established Terraform-module testing shape and the internal standards that require docs, examples, and tests to evolve together.
+
+**Alternatives considered**:
+
+- Add only a README example initially: rejected because the module needs repeatable verification for idempotency and optional logging behavior.
+- Introduce a new test harness: rejected because the repository already has a native Terraform example-test pattern.

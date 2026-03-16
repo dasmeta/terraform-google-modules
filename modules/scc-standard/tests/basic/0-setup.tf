@@ -1,13 +1,12 @@
 terraform {
   required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 5.0"
+    test = {
+      source = "terraform.io/builtin/test"
     }
 
-    google-beta = {
-      source  = "hashicorp/google-beta"
-      version = ">= 5.0"
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
     }
   }
 }
