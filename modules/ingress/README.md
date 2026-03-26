@@ -72,7 +72,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_annotations"></a> [annotations](#input\_annotations) | n/a | `map(any)` | `{}` | no |
 | <a name="input_host"></a> [host](#input\_host) | n/a | `string` | `""` | no |
-| <a name="input_paths"></a> [paths](#input\_paths) | n/a | `list(any)` | <pre>[<br>  {<br>    "path": "/",<br>    "service_name": "nginx",<br>    "service_port": "80"<br>  }<br>]</pre> | no |
+| <a name="input_paths"></a> [paths](#input\_paths) | n/a | `list(any)` | <pre>[<br/>  {<br/>    "path": "/",<br/>    "service_name": "nginx",<br/>    "service_port": "80"<br/>  }<br/>]</pre> | no |
 
 ## Outputs
 
