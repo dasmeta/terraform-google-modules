@@ -1,0 +1,3 @@
+functions-framework==3.9.2
+google-cloud-firestore==2.21.0
+google-cloud-securitycenter==1.40.0
